@@ -1,0 +1,27 @@
+﻿@page "/report/{Id:int}"
+@page "/report/{Id:int}/{DateString}"
+
+@using Situ.Data
+@using Situ.Models
+@using System.Globalization
+
+@inject DepartmentService DepartmentService
+
+<h5 style="display: inline;">Report für </h5><h3 style="display: inline;">@_department?.Name</h3>
+<h3></h3>
+<ReportComponent Department="_department" Date="_date"></ReportComponent>
+
+@code {
+    [Parameter] public int Id { get; set; }
+    [Parameter] public string DateString { get; set; }
+
+    private DateTime _date;
+    private Department _department;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        _department = await DepartmentService.GetDepartmentByIdAsync(Id);
+        var cultureInfo = new CultureInfo("de-DE");
+        _date = string.IsNullOrWhiteSpace(DateString) ? DateTime.Today : DateTime.ParseExact(DateString, "yyyyMMdd", cultureInfo);
+    }
+}

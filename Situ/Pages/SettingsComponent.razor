@@ -1,0 +1,194 @@
+﻿@page "/settings"
+@attribute [Authorize(Roles = "admin")]
+
+@using Data
+@using Models
+
+@inject DepartmentService DepartmentService
+@inject UserService UserService
+
+<h3 class="hkwYellowBack mt-4 px-3 mx-0">Benutzer</h3>
+
+@foreach (var user in Users)
+{
+    <div class="form-inline my-1">
+        <button class="form-control form-control-sm btn btn-sm btn-outline-danger mr-1" @onclick="() => OnDeleteUserClicked(user)">
+            <span class="oi oi-x" aria-hidden="true"></span>
+        </button>
+        <input class="form-control form-control-sm col mr-1" placeholder="Nachname" type="text" @bind="user.LastName" />
+        <input class="form-control form-control-sm col mr-1" placeholder="Vorname" type="text" @bind="@user.FirstName" />
+        <input class="form-control form-control-sm col" placeholder="E-Mail" type="text" required @bind="@user.Email" />
+        <div class="form-check form-check-inline">
+            <input class="form-check-input ml-1" type="checkbox" id="@user.Id" @bind="@user.Admin" />
+            <label class="form-check-label" for="@user.Id">Admin</label>
+        </div>
+    </div>
+}
+<div class="form-inline">
+    <button class="btn btn-outline-success btn-sm mr-1" @onclick="OnAddUserClicked">
+        <span class="oi oi-plus" aria-hidden="true"></span>
+    </button>
+    <button class="form-control form-control-sm btn btn-sm btn-outline-success mr-1" @onclick="() => OnUsersChanged()">
+        <span class="oi oi-check" aria-hidden="true"></span>
+    </button>
+</div>
+
+<h3 class="hkwYellowBack mt-4 px-3 mx-0">Abteilungen</h3>
+<button class="btn btn-outline-success btn-sm mr-1" @onclick="OnAddDepartmentClicked">
+    <span class="oi oi-plus" aria-hidden="true"></span>
+</button>
+
+@foreach (var dept in Departments)
+{
+    <h5 class="hkwYellowBack mt-4 px-3 mx-0">
+        <button style="width:31px;" class="form-control form-control-sm btn btn-sm btn-outline-danger mr-1" @onclick="() => OnDeleteDepartmentClicked(dept)">
+            <span class="oi oi-x" aria-hidden="true"></span>
+        </button>
+        <input class="col-10" @bind="dept.Name" @bind:event="oninput" @onchange="() => OnDepartmentNameChanged(dept)" style="border-width:0px;background-color:transparent" />
+    </h5>
+    <div>
+        <div class="input-group input-group-sm mb-1">
+            <div class="input-group-prepend">
+                <span class="input-group-text" id="l1quelle">L1 Quelle</span>
+            </div>
+            <input type="text" class="form-control form-control-sm" placeholder="Datenquelle" @bind-value="dept.L1ConnectionString" aria-label="Datenquelle" aria-describedby="l1quelle">
+        </div>
+        
+        <label>Management:</label>
+        <div class="d-flex flex-wrap">
+            @foreach (var user in Users.OrderBy(u => u.LastName))
+            {
+                var ctrlId = Guid.NewGuid();
+                <div class="input-group input-group-sm mb-1 col-3">
+                    <div class="input-group-prepend">
+                        <div class="input-group-text">
+                            <input type="checkbox" id="@ctrlId" checked="@dept.Management.Any(r => r.Id == user.Id)" @onchange="e => OnMembershipChanged(e, dept, dept.Management, user)" />
+                        </div>
+                    </div>
+                    <label class="form-control unselectable" for="@ctrlId">@user.FullName</label>
+                </div>
+            }
+        </div>
+    </div>
+    <div>
+        <label class="mr-4">Verwaltung:</label>
+        <div class="d-flex flex-wrap">
+            @foreach (var user in Users.OrderBy(u => u.LastName))
+            {
+                var ctrlId = Guid.NewGuid();
+                <div class="input-group input-group-sm mb-1 col-3">
+                    <div class="input-group-prepend">
+                        <div class="input-group-text">
+                            <input type="checkbox" id="@ctrlId" checked="@dept.Administration.Any(r => r.Id == user.Id)" @onchange="e => OnMembershipChanged(e, dept, dept.Administration, user)" />
+                        </div>
+                    </div>
+                    <label class="form-control unselectable" for="@ctrlId">@user.FullName</label>
+                </div>
+            }
+        </div>
+    </div>
+    <div>
+        <label class="mr-4">Disponents:</label>
+        <div class="d-flex flex-wrap">
+            @foreach (var user in Users.OrderBy(u => u.LastName))
+            {
+                var ctrlId = Guid.NewGuid();
+                <div class="input-group input-group-sm mb-1 col-3">
+                    <div class="input-group-prepend">
+                        <div class="input-group-text">
+                            <input type="checkbox" id="@ctrlId" checked="@dept.Dispatch.Any(r => r.Id == user.Id)" @onchange="e => OnMembershipChanged(e, dept, dept.Dispatch, user)" />
+                        </div>
+                    </div>
+                    <label class="form-control unselectable" for="@ctrlId">@user.FullName</label>
+                </div>
+            }
+        </div>
+    </div>
+    <div>
+        <label class="mr-4">Recruiting:</label>
+        <div class="d-flex flex-wrap">
+            @foreach (var user in Users.OrderBy(u => u.LastName))
+            {
+                var ctrlId = Guid.NewGuid();
+                <div class="input-group input-group-sm mb-1 col-3">
+                    <div class="input-group-prepend">
+                        <div class="input-group-text">
+                            <input type="checkbox" id="@ctrlId" checked="@dept.Recruiting.Any(r => r.Id == user.Id)" @onchange="e => OnMembershipChanged(e, dept, dept.Recruiting, user)" />
+                        </div>
+                    </div>
+                    <label class="form-control unselectable" for="@ctrlId">@user.FullName</label>
+                </div>
+            }
+        </div>
+    </div>
+}
+
+@code {
+
+    private List<Department> Departments = new();
+    private List<User> Users = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        Departments = (await DepartmentService.GetAllDepartmentsAsync()).OrderBy(d => d.Name).ToList();
+        Users = await UserService.GetAllUsersAsync();
+    }
+
+    private async void OnMembershipChanged(ChangeEventArgs args, Department department, List<User> userGroup, User user)
+    {
+        if ((bool)args.Value)
+        {
+            if (!userGroup.Any(u => u.Id == user.Id)) userGroup.Add(user);
+        }
+        else
+        {
+            var userInGroup = userGroup.FirstOrDefault(u => u.Id == user.Id);
+            if (userInGroup != null) userGroup.Remove(userInGroup);
+        }
+
+        await DepartmentService.SaveDepartment(department);
+    }
+
+    private async void OnDeleteUserClicked(User user)
+    {
+        Users.Remove(user);
+        await UserService.SaveAllUsers(Users);
+    }
+
+    private void OnAddUserClicked()
+    {
+        Users.Add(new User());
+    }
+
+    private async void OnUsersChanged()
+    {
+        await UserService.SaveAllUsers(Users);
+        Users = Users.OrderBy(u => u.LastName).ToList();
+        StateHasChanged();
+    }
+
+    private async void OnDeleteDepartmentClicked(Department department)
+    {
+        await DepartmentService.DeleteDepartmentById(department.Id);
+        Departments.Remove(department);
+        StateHasChanged();
+    }
+
+    private async void OnAddDepartmentClicked()
+    {
+        var firstFreeDepartmentId = 0;
+        foreach (var dept in Departments)
+        {
+            if (dept.Id > firstFreeDepartmentId) firstFreeDepartmentId = dept.Id;
+        }
+        firstFreeDepartmentId++;
+
+        Departments.Insert(0, new Department(firstFreeDepartmentId) { Name = "Neue Abteilung" });
+        await DepartmentService.SaveAllDepartments(Departments);
+    }
+
+    private async void OnDepartmentNameChanged(Department department)
+    {
+        await DepartmentService.SaveDepartment(department);
+    }
+}

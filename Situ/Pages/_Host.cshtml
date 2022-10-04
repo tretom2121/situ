@@ -1,0 +1,123 @@
+﻿@page "/"
+@namespace Situ.Pages
+@addTagHelper *, Microsoft.AspNetCore.Mvc.TagHelpers
+@{
+    Layout = null;
+}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Situ</title>
+    <base href="~/" />
+    <link rel="stylesheet" href="css/bootstrap/bootstrap.min.css" />
+    <link href="css/site.css" rel="stylesheet" />
+
+    <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+    <script type="text/javascript">google.charts.load('current', { packages: ['corechart'] });</script>
+</head>
+<body>
+    <app>
+        <component type="typeof(App)" render-mode="ServerPrerendered" />
+    </app>
+
+    <div id="blazor-error-ui">
+        <environment include="Staging,Production">
+            Es ist ein Fehler aufgetreten. Diese Anwendung reagiert möglicherweise nicht mehr, bis sie neu geladen wird.
+        </environment>
+        <environment include="Development">
+            An unhandled exception has occurred. See browser dev tools for details.
+        </environment>
+        <a href="" class="reload">Reload</a>
+        <a class="dismiss">🗙</a>
+    </div>
+
+    <script src="_framework/blazor.server.js"></script>
+
+    <script>
+        var dt = null;
+        var chart = false;
+        var options = {
+            legend: {
+                position: 'top',
+                maxLines: 3,
+                textStyle: { fontName: 'Arial', fontSize: 12, bold: false }
+            },
+            chartArea: { left: 90, top: 50, width: '100%', height: '100%' },
+            isStacked: true,
+            vAxis: {
+                format: 'dd.MM.yy',
+                direction: '-1',
+                textStyle: { fontName: 'Arial', fontSize: 12, bold: false }
+            },
+            hAxis: {
+                textPosition: 'none',
+                textStyle: { fontName: 'Arial', fontSize: 12, bold: false }
+            },
+            bar: { groupWidth: "50%" }
+        };
+
+        function initChart(elementId) {
+            dt = new google.visualization.DataTable();
+            dt.addColumn('string', 'DateString');
+            dt.addColumn('number', 'Gesamtfehlzeitenquote');
+            dt.addColumn({ type: 'number', role: 'annotation' });
+            dt.addColumn('number', 'Fehlzeitenquote Bezahlt');
+            dt.addColumn({ type: 'number', role: 'annotation' });
+            dt.addColumn('number', 'Fehlzeitenquote Unbezahlt');
+            dt.addColumn({ type: 'number', role: 'annotation' });
+            dt.addColumn('number', 'Krankheit');
+            dt.addColumn({ type: 'number', role: 'annotation' });
+            dt.addColumn('number', 'Unbezahlte Fehlzeit');
+            dt.addColumn({ type: 'number', role: 'annotation' });
+            dt.addColumn('number', 'Urlaub und Gleitzeit');
+            dt.addColumn({ type: 'number', role: 'annotation' });
+            dt.addColumn('number', 'Wartezeit');
+            dt.addColumn({ type: 'number', role: 'annotation' });
+
+            chart = new google.visualization.BarChart(document.getElementById(elementId));
+
+            chart.draw(dt, options)
+        };
+
+        function drawChart(data) {
+            if (data != null) {
+                var formattedData = [];
+
+                for (var i = 0; i < data.length; i++) {
+                    var rowItem = [data[i].dateString,
+                    data[i].prozGesamtFehlzeitenquote,
+                    data[i].prozGesamtFehlzeitenquote,
+                    data[i].prozFehlzeitenquoteBezahlt,
+                    data[i].prozFehlzeitenquoteBezahlt,
+                    data[i].prozFehlzeitenquoteUnbezahlt,
+                    data[i].prozFehlzeitenquoteUnbezahlt,
+                    data[i].ProzKrankheit,
+                    data[i].ProzKrankheit,
+                    data[i].prozUnbezahlteFehlzeit,
+                    data[i].prozUnbezahlteFehlzeit,
+                    data[i].prozUrlaubUndGleitzeit,
+                    data[i].prozUrlaubUndGleitzeit,
+                    data[i].prozWartezeit,
+                    data[i].prozWartezeit]
+                    formattedData.push(rowItem);
+                }
+                dt.addRows(formattedData);
+            }
+
+            var monthYearFormatter = new google.visualization.DateFormat({
+                pattern: "yy.MM.dd"
+            });
+
+            monthYearFormatter.format(dt, 0);
+            chart.draw(dt, options);
+        }
+
+        window.drawGoogleChart = (data) => {
+            drawChart(data);
+        }
+    </script>
+</body>
+</html>

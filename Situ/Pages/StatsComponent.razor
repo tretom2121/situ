@@ -1,0 +1,234 @@
+﻿@page "/stats"
+
+@using Models
+@using Data
+
+@inject DepartmentService DepartmentService
+@inject StatisticService StatisticService
+@inject IJSRuntime JSRuntime
+
+<div class="form-inline">
+    <h3>Statistik</h3>
+    <div class="row align-baseline" style="margin-left:155px;">
+        <div class="input-group">
+            <label class="ml-2 mr-1">Von:</label>
+            <input type="date" @bind-value="_fromDate" />
+        </div>
+        <div class="input-group">
+            <label class="ml-2 mr-1">Bis:</label>
+            <input type="date" @bind-value="_toDate" />
+        </div>
+    </div>
+    <div class="input-group ml-4">
+        <button class="btn btn-outline-success btn-sm" @onclick="() => ShowDataByDates(_fromDate, _toDate)">
+            <span class="oi oi-data-transfer-download" aria-hidden="true"></span>
+        </button>
+    </div>
+</div>
+<div class="form-inline">
+    <button class="btn btn-sm btn-outline-primary mx-1" @onclick="() => ShowDataByDates(DateTime.Today.AddDays(-(int)DateTime.Today.DayOfWeek + (int)DayOfWeek.Monday), DateTime.Today)">Diese Woche</button>
+    <button class="btn btn-sm btn-outline-primary mx-1" @onclick="() => ShowDataByDates(DateTime.Today.AddDays(-7), DateTime.Today)">Letzte 7 Tage</button>
+    <button class="btn btn-sm btn-outline-primary mx-1" @onclick="() => ShowDataByDates(new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1), DateTime.Today)">Dieser Monat</button>
+    <button class="btn btn-sm btn-outline-primary mx-1" @onclick="() => ShowDataByDates(DateTime.Today.AddDays(-30), DateTime.Today)">Letzte 30 Tage</button>
+    <button class="btn btn-sm btn-outline-primary mx-1" @onclick="() => ShowDataByDates(new DateTime(DateTime.Today.Year, 1, 1), DateTime.Today)">Dieses Jahr</button>
+    <button class="btn btn-sm btn-outline-primary mx-1" @onclick="() => ShowDataByDates(DateTime.Today.AddDays(-365), DateTime.Today)">Letzte 365 Tage</button>
+
+    <div class="custom-control custom-switch ml-1">
+        <input type="checkbox" class="custom-control-input" id="customSwitches" @onchange="e => OnShowChartsChanged(e)">
+        <label class="custom-control-label" for="customSwitches">
+            <span class="oi oi-bar-chart" aria-hidden="true"></span>
+        </label>
+    </div>
+</div>
+
+@foreach (var deptStat in _deptStats)
+{
+<AuthorizeView Roles="@($"{deptStat.Department.Id}_{CentralVariables.MANAGEMENT_ROLE}")">
+    <h5 class="hkwYellowBack mt-4 px-3 mx-0">@deptStat.Department.Name</h5>
+    @if (_showCharts)
+    {
+        var divId = $"{deptStat.Department.Id}_chart_div";
+
+        var stats = deptStat.Statistics.Where(s => !(s.ProzFehlzeitenquoteBezahlt is double.NaN)).OrderByDescending(s => s.Date).ToList();
+
+        if (stats.Count > 0)
+        {
+            <div id="@(divId)" style="width: 100%; height: @($"{Math.Max(stats.Count * 60, 10) + 40}px"); margin: 0"></div>
+
+            JSRuntime.InvokeVoidAsync("initChart", divId);
+            JSRuntime.InvokeVoidAsync("drawGoogleChart", stats);
+        }
+        else
+        {
+            <div>Keine Daten vorhanden</div>
+        }
+    }
+    else
+    {
+        <table class="table table-sm table-bordered table-striped">
+            <tr>
+                <th class="text-center"></th>
+                <th class="text-center">Datum</th>
+                <th class="text-center">Krankheit</th>
+                <th class="text-center">Wartezeit</th>
+                <th class="text-center">Urlaub und Gleitzeit</th>
+                <th class="text-center">Unbezahlte Fehlzeit</th>
+                <th class="text-center">Fehlzeitenquote Bezahlt</th>
+                <th class="text-center">Fehlzeitenquote Unbezahlt</th>
+                <th class="text-center">Gesamt-fehlzeitenquote</th>
+            </tr>
+            @foreach (var stat in deptStat.Statistics)
+            {
+                <tr>
+                    @if (stat.ProzFehlzeitenquoteBezahlt is double.NaN || stat.ProzFehlzeitenquoteUnbezahlt is double.NaN ||
+stat.ProzGesamtFehlzeitenquote is double.NaN || stat.ProzKrankheit is double.NaN ||
+stat.ProzUnbezahlteFehlzeit is double.NaN || stat.ProzUrlaubUndGleitzeit is double.NaN ||
+stat.ProzWartezeit is double.NaN)
+                    {
+                        <td>
+                            <span class="oi oi-ban text-center" style="color:lightgray" aria-hidden="true"></span>
+                        </td>
+                    }
+                    else
+                    {
+                        <td>
+                            <NavLink href="@($"report/{deptStat.Department.Id}/{stat.Date.ToString("yyyyMMdd")}")">
+                                <span class="oi oi-external-link" aria-hidden="true"></span>
+                            </NavLink>
+                        </td>
+                    }
+                    <td class="text-right">@stat.Date.ToString("dd.MM.yyyy")</td>
+
+                    @if (stat.ProzKrankheit is double.NaN)
+                    {
+                        <td class="text-right">n/a</td>
+                    }
+                    else
+                    {
+                        <td class="text-right">@stat.ProzKrankheit.ToString("0.00")</td>
+                    }
+                    @if (stat.ProzWartezeit is double.NaN)
+                    {
+                        <td class="text-right">n/a</td>
+                    }
+                    else
+                    {
+                        <td class="text-right">@stat.ProzWartezeit.ToString("0.00")</td>
+                    }
+                    @if (stat.ProzUrlaubUndGleitzeit is double.NaN)
+                    {
+                        <td class="text-right">n/a</td>
+                    }
+                    else
+                    {
+                        <td class="text-right">@stat.ProzUrlaubUndGleitzeit.ToString("0.00")</td>
+                    }
+                    @if (stat.ProzUnbezahlteFehlzeit is double.NaN)
+                    {
+                        <td class="text-right">n/a</td>
+                    }
+                    else
+                    {
+                        <td class="text-right">@stat.ProzUnbezahlteFehlzeit.ToString("0.00")</td>
+                    }
+                    @if (stat.ProzFehlzeitenquoteBezahlt is double.NaN)
+                    {
+                        <td class="text-right">n/a</td>
+                    }
+                    else
+                    {
+                        <td class="text-right">@stat.ProzFehlzeitenquoteBezahlt.ToString("0.00")</td>
+                    }
+                    @if (stat.ProzFehlzeitenquoteUnbezahlt is double.NaN)
+                    {
+                        <td class="text-right">n/a</td>
+                    }
+                    else
+                    {
+                        <td class="text-right">@stat.ProzFehlzeitenquoteUnbezahlt.ToString("0.00")</td>
+                    }
+                    @if (stat.ProzGesamtFehlzeitenquote is double.NaN)
+                    {
+                        <td class="text-right">n/a</td>
+                    }
+                    else
+                    {
+                        <td class="text-right">@stat.ProzGesamtFehlzeitenquote.ToString("0.00")</td>
+                    }
+                </tr>
+            }
+        </table>
+    }
+</AuthorizeView>
+}
+
+@code {
+
+    private DateTime _fromDate;
+    private DateTime _toDate;
+    private List<DepartmentStats> _deptStats = new();
+    private bool _showCharts;
+
+    private async void ShowDataByDates(DateTime beginDate, DateTime endDate)
+    {
+        _fromDate = beginDate;
+        _toDate = endDate;
+
+        await GetStatistics();
+        AddUnavailableData();
+
+        if (_showCharts)
+        {
+            OnShowChartsChanged(new ChangeEventArgs() { Value = true });
+        }
+
+        await InvokeAsync(() => StateHasChanged());
+    }
+
+    private async Task GetStatistics()
+    {
+        _deptStats.Clear();
+        var depts = await DepartmentService.GetAllDepartmentsAsync();
+
+        foreach (var dept in depts)
+        {
+            _deptStats.Add(StatisticService.GetStatisticByDeptAndDate(dept, _fromDate, _toDate));
+        }
+    }
+
+    private void AddUnavailableData()
+    {
+        foreach (var dept in _deptStats)
+        {
+            for (DateTime date = _fromDate; date <= _toDate; date = date.AddDays(1))
+            {
+                if (date.DayOfWeek == DayOfWeek.Saturday || date.DayOfWeek == DayOfWeek.Sunday) continue;
+                if (dept.Statistics.Any(s => s.Date == date)) continue;
+
+                dept.Statistics.Add(new Statistic()
+                {
+                    Date = date,
+                    ProzFehlzeitenquoteBezahlt = double.NaN,
+                    ProzFehlzeitenquoteUnbezahlt = double.NaN,
+                    ProzGesamtFehlzeitenquote = double.NaN,
+                    ProzKrankheit = double.NaN,
+                    ProzUnbezahlteFehlzeit = double.NaN,
+                    ProzUrlaubUndGleitzeit = double.NaN,
+                    ProzWartezeit = double.NaN,
+                });
+            }
+
+            dept.Statistics = dept.Statistics.OrderBy(s => s.Date).ToList();
+        }
+    }
+
+    private async void OnShowChartsChanged(ChangeEventArgs e)
+    {
+        _showCharts = (bool)e.Value;
+        if (!_showCharts) return;
+
+        await Task.Delay(500);
+
+        await InvokeAsync(() => StateHasChanged());
+    }
+}

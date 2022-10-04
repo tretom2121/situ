@@ -1,0 +1,177 @@
+﻿@using System.Timers
+@using Situ.Data
+@using Situ.Models
+
+@implements IDisposable
+
+<div class="componentRoot">
+    <input id="SearchField" type="search" placeholder="@Placeholder" list="ItemList" autocomplete="off" style="border-width: 1px" class="control"
+           @bind-value="_searchValue" @oninput="e => OnSearchTextInput(e)"
+           @onkeyup="OnSearcInputKeyUp" @onfocusout="e => OnSearchInputFocusOut()" @onfocusin="e => OnSearchInputFocusIn()" />
+
+    <div class="resultList border @(!_showSearchResult ? "d-none" : "")" @onmouseover="OnResultListMouseOver" @onmouseout="OnResultListMouseOut">
+        @if (_items.Count == 0 && !string.IsNullOrWhiteSpace(_searchValue))
+        {
+            <div class="resultList-Item container">
+                <div style="color: red">Kein Ergebnis</div>
+            </div>
+        }
+        @foreach (var oItem in _items)
+        {
+            <div class="resultList-Item @(_items.IndexOf(oItem) == _markedIndexInItems ? "selected-resultList-Item" : "" )" @onclick="() => OnResultListItemClick(oItem)">@oItem.FullName</div>
+        }
+    </div>
+</div>
+
+@code {
+    [Parameter] public ISearchService<Employee> SearchService { get; set; }
+    [Parameter] public string Placeholder { get; set; }
+    [Parameter] public EmploymentChance Chance { get; set; }
+
+    private bool _showSearchResult;
+    private string _searchValue;
+    private List<Employee> _items = new List<Employee>();
+
+    protected override void OnInitialized()
+    {
+        if (SearchService == null) throw new ArgumentNullException();
+
+        InitSearchTimer();
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (Chance?.Person == null)
+        {
+            _searchValue = null;
+            return;
+        }
+
+        await ExecuteServerSearchByIdAsync(Chance.Person.Id);
+    }
+
+    private Timer _searchTimer;
+    private void InitSearchTimer()
+    {
+        _searchTimer = new Timer(700);
+        _searchTimer.Elapsed += OnSearchTimerTick;
+        _searchTimer.AutoReset = false;
+    }
+
+    private void OnSearchTimerTick(object p_sender, ElapsedEventArgs p_e)
+    {
+        InvokeAsync(ExecuteServerSearchAsync);
+        ResetSearchResultKeyboardSelection();
+        _searchTimer.Stop();
+    }
+
+    private void OnSearchTextInput(ChangeEventArgs e)
+    {
+        _searchValue = e.Value.ToString();
+        if (string.IsNullOrWhiteSpace(_searchValue)) Chance.Person = null;
+    }
+
+    private int _markedIndexInItems = -1;
+    private void OnSearcInputKeyUp(KeyboardEventArgs e)
+    {
+        if (e.Key == "Escape")
+        {
+            _showSearchResult = false;
+            return;
+        }
+        if (_searchValue == null || _searchValue.Length < 2)
+        {
+            _items.Clear();
+            _showSearchResult = false;
+            return;
+        }
+        if (e.Key == "Enter")
+        {
+            if (_markedIndexInItems >= 0 && _markedIndexInItems < _items.Count)
+            {
+                var oSelectedItem = _items[_markedIndexInItems];
+                OnResultListItemClick(oSelectedItem);
+                return;
+            }
+
+            InvokeAsync(ExecuteServerSearchAsync);
+            return;
+        }
+        if (e.Key == "ArrowDown")
+        {
+
+            if (_markedIndexInItems < _items.Count - 1) _markedIndexInItems += 1;
+            StateHasChanged();
+            return;
+        }
+        if (e.Key == "ArrowUp")
+        {
+            if (_markedIndexInItems > 0) _markedIndexInItems -= 1;
+            return;
+        }
+
+        _searchTimer.Start();
+    }
+
+    private void OnResultListItemClick(Employee person)
+    {
+        _searchValue = person.FullName;
+        Chance.Person = person;
+
+        _showSearchResult = false;
+        _items.Clear();
+    }
+
+    private async Task ExecuteServerSearchAsync()
+    {
+        _items = await SearchService.GetMatchingItems(_searchValue);
+        _showSearchResult = true;
+        StateHasChanged();
+    }
+
+    private async Task ExecuteServerSearchByIdAsync(int id)
+    {
+        _showSearchResult = false;
+
+        var item = await SearchService.GetItemById(id);
+        if (item == null)
+            _searchValue = null;
+        else
+            _searchValue = item.FullName;
+
+        StateHasChanged();
+    }
+
+    private void OnSearchInputFocusIn()
+    {
+        _showSearchResult = _searchValue?.Length > 0;
+    }
+
+    private bool _resultListMouseOver;
+    private void OnSearchInputFocusOut()
+    {
+        if (_resultListMouseOver) return;
+        _showSearchResult = false;
+    }
+
+    private void OnResultListMouseOver()
+    {
+        _resultListMouseOver = true;
+        ResetSearchResultKeyboardSelection();
+    }
+
+    private void ResetSearchResultKeyboardSelection()
+    {
+        _markedIndexInItems = -1;
+    }
+
+    private void OnResultListMouseOut()
+    {
+        _resultListMouseOver = false;
+    }
+
+    public void Dispose()
+    {
+        if (_searchTimer != null) _searchTimer.Elapsed -= OnSearchTimerTick;
+    }
+}

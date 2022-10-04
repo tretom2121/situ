@@ -1,0 +1,78 @@
+﻿@using Situ.Data
+@using Situ.Models
+@inject DepartmentService DepartmentService
+
+<div class="top-row navbar navbar-dark mx-0">
+    <a class="navbar-brand" href="">Situationsübersicht</a>
+    <button class="navbar-toggler" @onclick="ToggleNavMenu">
+        <span class="navbar-toggler-icon"></span>
+    </button>
+</div>
+
+@if (DateTime.Today <= CentralVariables.TRIAL_PERIOD_END)
+{
+
+    <div class="@NavMenuCssClass" @onclick="ToggleNavMenu">
+        <ul class="nav flex-column">
+            <li class="nav-item px-0">
+                <NavLink class="nav-link" href="" Match="NavLinkMatch.All">
+                    <span class="oi oi-home" aria-hidden="true"></span> Home
+                </NavLink>
+            </li>
+
+            @foreach (Department dep in _departments)
+            {
+                <AuthorizeView Roles="@($"{dep.Id}_{CentralVariables.DISPATCH_ROLE}")">
+
+                    <li class="nav-item px-0" style="background-color: rgba(128,128,128,.1)">
+                        <NavLink class="nav-link" href="@GetHref(dep)">
+                            <span class="oi oi-list-rich" aria-hidden="true"></span> @dep.Name
+                        </NavLink>
+                    </li>
+                </AuthorizeView>
+            }
+
+            <li class="nav-item px-0">
+                <NavLink class="nav-link" href="Stats" Match="NavLinkMatch.All">
+                    <span class="oi oi-bar-chart" aria-hidden="true"></span> Statistik
+                </NavLink>
+            </li>
+
+            <AuthorizeView Roles="@($"{CentralVariables.ADMIN_ROLE}")">
+                <li class="nav-item px-0">
+                    <NavLink class="nav-link" href="Settings" Match="NavLinkMatch.All">
+                        <span class="oi oi-grid-three-up" aria-hidden="true"></span> Einstellungen
+                    </NavLink>
+                </li>
+            </AuthorizeView>
+        </ul>
+    </div>
+}
+else
+{
+<h6 class="text-danger">Testzeitraum ist abgelaufen</h6>
+}
+
+@code {
+    private bool collapseNavMenu = true;
+
+    private string NavMenuCssClass => collapseNavMenu ? "collapse" : null;
+
+    private List<Department> _departments = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        _departments = await DepartmentService.GetAllDepartmentsAsync();
+    }
+
+    private void ToggleNavMenu()
+    {
+        collapseNavMenu = !collapseNavMenu;
+    }
+
+    private string GetHref(Department department)
+    {
+        var href = "report/" + department.Id;
+        return href;
+    }
+}

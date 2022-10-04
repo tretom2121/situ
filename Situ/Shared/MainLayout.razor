@@ -1,0 +1,17 @@
+﻿@inherits LayoutComponentBase
+
+@using System.IO
+@using Data
+
+<div class="row mx-0">
+    <div class="col-2">
+    </div>
+    <div class="sidebar col-2">
+        <NavMenu />
+    </div>
+    <div class="col-10">
+        <div class="nopadding h-100">
+            @Body
+        </div>
+    </div>
+</div>

@@ -1,0 +1,329 @@
+﻿@using Situ.Data
+@using Situ.Models
+@inject L1DataService L1DataService
+@inject ReportService ReportService
+@inject NavigationManager NavigationManager
+@inject IJSRuntime JSRuntime
+
+<div class="row col-4 px-0" style="float: right;margin-right:0px;margin-top:-40px;">
+    <div>
+        <input type="date" @bind-value="@Date" />
+    </div>
+    <div class="ml-1 p-0">
+        <div style="background-color: white;display: inline-block;">
+            <button class="btn btn-outline-primary btn-sm" @onclick="OnReloadReportByDate">
+                <span class="oi oi-data-transfer-download" aria-hidden="true"></span>
+            </button>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-8">
+        <table>
+            <tr class="hkwYellowBack">
+                <th>Situation</th>
+                <th>Anzahl</th>
+                <th>Anzahl</th>
+                <th>Situation</th>
+            </tr>
+            <tr>
+                <td class="text-right">Aktive Kunden</td>
+                <td><input class="p-0 text-right" type="number" min="0" max="9999" @bind="_report.AktiveKunden" /></td>
+                <td><input class="p-0 text-right" type="number" min="0" max="9999" @bind="_report.Termineinstellung" /></td>
+                <td>Termineinstellung</td>
+            </tr>
+            <tr>
+                <td class="text-right">Eintritte</td>
+                <td><input class="p-0 text-right" type="number" min="0" max="9999" @bind="_report.Eintritte" /></td>
+                <td><input class="p-0 text-right" type="number" min="0" max="9999" @bind="_report.Austritte" /></td>
+                <td>Austritte</td>
+            </tr>
+            <tr>
+                <td class="text-right">Mitarbeiter im Einsatz</td>
+                <td><input class="p-0 text-right" type="number" min="0" max="9999" @bind="_report.MAImEinsatz" /></td>
+                <td><input class="p-0 text-right" type="number" min="0" max="9999" @bind="_report.KrankImEinsatz" /></td>
+                <td>Krank mit Einsatz</td>
+            </tr>
+            <tr>
+                <td class="text-right">Krank ohne Einsatz</td>
+                <td><input class="p-0 text-right" type="number" min="0" max="9999" @bind="_report.KrankOhneEinsatz" /></td>
+                <td><input class="p-0 text-right" type="number" min="0" max="9999" @bind="_report.KrankOhneLohnfortzahlung" /></td>
+                <td>Krank ohne Lohnfortzahlung</td>
+            </tr>
+            <tr>
+                <td class="text-right">Gleitzeit mit Einsatz</td>
+                <td><input class="p-0 text-right" type="number" min="0" max="9999" @bind="_report.GleitzeitMitEinsatz" /></td>
+                <td><input class="p-0 text-right" type="number" min="0" max="9999" @bind="_report.GleitzeitOhneEinsatz" /></td>
+                <td>Gleitzeit ohne Einsatz</td>
+            </tr>
+            <tr>
+                <td class="text-right">Urlaub mit Einsatz</td>
+                <td><input class="p-0 text-right" type="number" min="0" max="9999" @bind="_report.UrlaubMitEinsatz" /></td>
+                <td><input class="p-0 text-right" type="number" min="0" max="9999" @bind="_report.UrlaubOhneEinsatz" /></td>
+                <td>Urlaub ohne Einsatz</td>
+            </tr>
+            <tr>
+                <td class="text-right">Urlaub unbezahlt mit Einsatz</td>
+                <td><input class="p-0 text-right" type="number" min="0" max="9999" @bind="_report.UrlaubUnbezahltMitEinsatz" /></td>
+                <td><input class="p-0 text-right" type="number" min="0" max="9999" @bind="_report.KurzarbeitKUG" /></td>
+                <td>Kurzarbeit - KUG</td>
+            </tr>
+            <tr>
+                <td class="text-right">Unentschuldigtes Fehlen</td>
+                <td><input class="p-0 text-right" type="number" min="0" max="9999" @bind="_report.UnentschuldigtesFehlen" /></td>
+                <td><input class="p-0 text-right" type="number" min="0" max="9999" @bind="_report.Wartezeit" /></td>
+                <td>Wartezeit</td>
+            </tr>
+            <tr>
+                <td class="text-right">Mutterschutz</td>
+                <td><input class="p-0 text-right" type="number" min="0" max="9999" @bind="_report.Mutterschutz" /></td>
+                <td><input class="p-0 text-right" type="number" min="0" max="9999" @bind="_report.Elternzeit" /></td>
+                <td>Elternzeit</td>
+            </tr>
+            <tr>
+                <td style="font-weight:bold;">Gesamtmitarbeiter</td>
+                <td><input disabled style="font-weight:bold;" class="p-0 text-right" type="number" min="0" max="9999" value="@_report.Gesamtmitarbeiter" /></td>
+            </tr>
+        </table>
+    </div>
+    <div class="col-4">
+        <table>
+            <tr class="hkwYellowBack">
+                <th>Fehlzeitenquoten	</th>
+                <th class="pl-4 text-center">%</th>
+            </tr>
+            <tr>
+                <td>Krankheit</td>
+                <td class="float-right"><label class="pl-4" />@_report.ProzKrankheit.ToString("0.00")</td>
+            </tr>
+            <tr class="tableStripeBack">
+                <td>Wartezeit</td>
+                <td class="float-right"><label class="pl-4" />@_report.ProzWartezeit.ToString("0.00")</td>
+            </tr>
+            <tr>
+                <td>Urlaub und Gleitzeit</td>
+                <td class="float-right"><label class="pl-4" />@_report.ProzUrlaubUndGleitzeit.ToString("0.00")</td>
+            </tr>
+            <tr class="tableStripeBack">
+                <td>Unbezahlte Fehlzeit</td>
+                <td class="float-right"><label class="pl-4" />@_report.ProzUnbezahlteFehlzeit.ToString("0.00")</td>
+            </tr>
+            <tr>
+                <td>Fehlzeitenquote Bezahlt</td>
+                <td class="float-right"><label class="pl-4" />@_report.ProzFehlzeitenquoteBezahlt.ToString("0.00")</td>
+            </tr>
+            <tr class="tableStripeBack">
+                <td>Fehlzeitenquote unbezahlt</td>
+                <td class="float-right"><label class="pl-4" />@_report.ProzFehlzeitenquoteUnbezahlt.ToString("0.00")</td>
+            </tr>
+            <tr>
+                <td>Gesamt Fehlzeitenquote</td>
+                <td class="float-right"><label class="pl-4" />@_report.ProzGesamtFehlzeitenquote.ToString("0.00")</td>
+            </tr>
+        </table>
+    </div>
+</div>
+<div class="table-responsive mt-2 mb-4" style="height:100%">
+
+    <table class="mt-2 col-12">
+        <thead>
+            <tr class="hkwYellowBack">
+                <th></th>
+                <th>Freie Mitarbeiter</th>
+                <th>Frei ab</th>
+                <th>Status</th>
+                <th>Austritt</th>
+                <th>Angebote</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (EmploymentChance chance in _report.EmploymentChances)
+            {
+                <tr>
+                    <td>
+                        <button class="btn btn-outline-danger btn-sm" @onclick="() => OnRemoveEmploymentChance(_report.EmploymentChances.IndexOf(chance))">
+                            <span class="oi oi-x" aria-hidden="true"></span>
+                        </button>
+                    </td>
+                    <td>
+                        <SearchComponent Placeholder="Mitarbeiter suchen..."
+                                         SearchService="_L1DataService"
+                                         Chance="chance">
+                        </SearchComponent>
+                    </td>
+                    <td>
+                        <input type="date" @bind="chance.FreeSince" />
+                    </td>
+                    <td>
+                        <input type="text" placeholder="Status" @bind="chance.State" />
+                    </td>
+                    <td>
+                        @if (chance.ExitDate > new DateTime(2019, 1, 1))
+                        {
+                            <div class="input-group input-group-sm">
+                                <div class="input-group-prepend">
+                                    <button class="btn btn-outline-danger btn-sm" @onclick="() => OnDeleteExitDate(chance)">
+                                        <span class="oi oi-x" aria-hidden="true"></span>
+                                    </button>
+                                </div>
+                                <input type="date" placeholder="" @bind="chance.ExitDate" />
+                            </div>
+                        }
+                        else
+                        {
+                            <button class="btn btn-outline-success btn-sm" @onclick="() => OnAddExitDate(chance)">
+                                <span class="oi oi-plus" aria-hidden="true"></span>
+                            </button>
+                        }
+                    </td>
+                    <td>
+                        <textarea @bind="chance.Info"
+                                  rows="1"
+                                  placeholder="Angebote / Notizen"
+                                  style="width:100%; resize:both;margin-top:5px;"
+                                  oninput="this.style.height = 'auto'; this.style.height = (this.scrollHeight) + 'px';">
+                        </textarea>
+                    </td>
+                </tr>
+            }
+            <tr>
+                <td>
+                    <button class="btn btn-outline-success btn-sm" @onclick="OnAddEmploymentChance">
+                        <span class="oi oi-plus" aria-hidden="true"></span>
+                    </button>
+                </td>
+                <td>
+                    <button class="btn btn-outline-danger btn-sm" @onclick="RemoveEmptyEmploymentChances">Leere löschen</button>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+</div>
+
+@if (DateTime.Today <= CentralVariables.TRIAL_PERIOD_END)
+{
+    <div class="text-right divfix" style="margin-top:-15px;">
+        <div class="mb-1 p-0">
+            <div style="background-color: white;display: inline-block;">
+                <button class="btn btn-outline-primary btn-sm" @onclick="OnReloadLastReport">
+                    <span class="oi oi-data-transfer-download" aria-hidden="true"></span>
+                </button>
+            </div>
+        </div>
+        <div class="mb-1 p-0">
+            <div style="background-color: white;display: inline-block;">
+                <button class="btn btn-outline-warning btn-sm" @onclick="OnResetReport">
+                    <span class="oi oi-trash" aria-hidden="true"></span>
+                </button>
+            </div>
+        </div>
+        <div class="mb-1 p-0">
+            <div style="background-color: white;display: inline-block;">
+                <button class="btn btn-outline-success btn-sm" @onclick="OnSaveReportClicked">
+                    <span class="oi oi-share" aria-hidden="true"></span>
+                </button>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter] public Department Department { get; set; }
+    [Parameter] public DateTime Date { get; set; }
+
+    private List<Employee> _allEmployees = new();
+    private Report _report = new();
+    private L1DataService _L1DataService = new();
+
+    protected override async Task OnParametersSetAsync()
+    {
+        _allEmployees = L1DataService.GetAllEmployeesAsync(Department);
+
+        if (Date > DateTime.MinValue)
+        {
+            _report = ReportService.GetReportByDepartmentAndDate(Department, Date);
+            if (_report == null)
+            {
+                if (Date < DateTime.Today)
+                {
+                    NavigationManager.NavigateTo("noreport");
+                }
+                _report = new();
+            }
+        }
+    }
+
+    private void OnAddEmploymentChance()
+    {
+        _report.EmploymentChances.Add(new EmploymentChance());
+    }
+
+    private ElementReference btnRemove;
+    private void OnRemoveEmploymentChance(int index)
+    {
+        _report.EmploymentChances.RemoveAt(index);
+        StateHasChanged();
+    }
+
+    private void RemoveEmptyEmploymentChances()
+    {
+        _report.EmploymentChances.RemoveAll(c => c.Person == null || string.IsNullOrWhiteSpace(c.Person.FullName));
+    }
+
+    private async void OnSaveReportClicked()
+    {
+        _report.Date = Date;
+        _report.Department = Department;
+
+        await ReportService.SaveReportAsync(_report);
+    }
+
+    private void OnResetReport()
+    {
+        _report = new();
+    }
+
+    private async void OnReloadLastReport()
+    {
+        var lastReport = ReportService.GetLastReportByDepartment(Department);
+        if (lastReport == null)
+        {
+            await Alert($"{Department.Name} hat noch kein Report erstellt");
+            lastReport = new();
+        }
+        _report = lastReport;
+        _report.Date = DateTime.Today;
+        Date = DateTime.Today;
+    }
+
+    private async void OnReloadReportByDate()
+    {
+        var report = ReportService.GetReportByDepartmentAndDate(Department, Date);
+
+        if (report == null)
+        {
+            await Alert($"{Department.Name} hat kein Report für  {Date.ToString("dd.MM.yyyy")} erstellt");
+            report = new();
+
+        }
+        _report = report;
+    }
+
+    private async Task Alert(string message)
+    {
+        await JSRuntime.InvokeAsync<object>("alert", message);
+    }
+
+    private void OnAddExitDate(EmploymentChance chance)
+    {
+        chance.ExitDate = DateTime.Today;
+        StateHasChanged();
+    }
+
+    private void OnDeleteExitDate(EmploymentChance chance)
+    {
+        chance.ExitDate = DateTime.MinValue;
+        StateHasChanged();
+    }
+}
